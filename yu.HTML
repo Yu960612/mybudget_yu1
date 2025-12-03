@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>記帳列表</title>
+<style>
+  body { font-family: Arial, sans-serif; padding: 20px; }
+  .day-list { max-height: 70vh; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; }
+  .day { margin-bottom: 20px; }
+  .day h3 { margin-bottom: 5px; }
+  .record { padding: 3px 0; }
+  button { margin: 10px 0; padding: 5px 10px; }
+</style>
+</head>
+<body>
+
+<h2>記帳清單</h2>
+
+<div>
+  <label for="month">選擇月份:</label>
+  <input type="month" id="month" value="2025-12">
+  <button id="export-btn">匯出本月 Excel</button>
+</div>
+
+<div class="day-list" id="day-list">
+  <!-- 每日記帳清單會動態生成 -->
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// 模擬記帳資料
+const records = [
+  { date: '2025-12-03', item: '早餐', amount: 50 },
+  { date: '2025-12-03', item: '午餐', amount: 120 },
+  { date: '2025-12-02', item: '晚餐', amount: 200 },
+  { date: '2025-12-01', item: '午餐', amount: 100 },
+  { date: '2025-11-30', item: '晚餐', amount: 180 }
+];
+
+// 生成每天列表
+function renderList(month) {
+  const dayList = document.getElementById('day-list');
+  dayList.innerHTML = '';
+  
+  // 篩選當月資料
+  const filtered = records.filter(r => r.date.startsWith(month));
+  
+  // 按日期排序（倒序）
+  const grouped = {};
+  filtered.forEach(r => {
+    if(!grouped[r.date]) grouped[r.date] = [];
+    grouped[r.date].push(r);
+  });
+
+  const sortedDates = Object.keys(grouped).sort((a,b)=>b.localeCompare(a));
+  
+  sortedDates.forEach(date => {
+    const dayDiv = document.createElement('div');
+    dayDiv.className = 'day';
+    const h3 = document.createElement('h3');
+    h3.textContent = date;
+    dayDiv.appendChild(h3);
+
+    grouped[date].forEach(r => {
+      const p = document.createElement('p');
+      p.className = 'record';
+      p.textContent = `${r.item} - ${r.amount}元`;
+      dayDiv.appendChild(p);
+    });
+
+    dayList.appendChild(dayDiv);
+  });
+}
+
+// 初始渲染
+const monthInput = document.getElementById('month');
+renderList(monthInput.value);
+
+// 月份改變時重新渲染
+monthInput.addEventListener('change', () => {
+  renderList(monthInput.value);
+});
+
+// 匯出 Excel
+document.getElementById('export-btn').addEventListener('click', () => {
+  const month = monthInput.value;
+  const filtered = records.filter(r => r.date.startsWith(month));
+  if(filtered.length === 0) {
+    alert('本月沒有記帳資料！');
+    return;
+  }
+
+  // 建立工作表資料
+  const wsData = [['日期','項目','金額']];
+  filtered.forEach(r => wsData.push([r.date, r.item, r.amount]));
+
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '本月記帳');
+
+  XLSX.writeFile(wb, `${month}-記帳.xlsx`);
+});
+</script>
+
+</body>
+</html>
